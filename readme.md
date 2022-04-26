@@ -42,8 +42,6 @@ To start, let's look over our chart-making checklist to remind ourselves of the 
 1. Draw peripherals
 1. Set up interactions
 
-We'll breeze through some of these steps, reinforcing what we've already learned.
-
 ## Access data
 
 In our javascript file, let's grab the data from our JSON file, waiting until it's loaded to continue.
@@ -52,18 +50,16 @@ In our javascript file, let's grab the data from our JSON file, waiting until it
 const dataset = await d3.json("./data/my_weather_data.json");
 ```
 
-This time, we're only interested in one metric for the whole chart. Remember, the y axis is plotting the frequency (i.e. the number of occurrences) of the metric whose values are on the x axis. So instead of an xAccessor() and yAccessor(), we define a single metricAccessor().
+This time we're only interested in one metric for the whole chart. Remember, the y axis is plotting the frequency (i.e. the number of occurrences) of the metric whose values are on the x axis. So instead of an `xAccessor()` and `yAccessor()`, we define a single metricAccessor().
 
 ```js
-const metricAccessor = (d) => d.humidity;
+const xAccessor = (d) => d.humidity;
 ```
 
 Final code:
 
 ```js
 async function drawBars() {
-  // your code goes here
-
   // 1. Access data
   const dataset = await d3.json("./data/my_weather_data.json");
 
@@ -74,8 +70,6 @@ drawBars();
 ```
 
 ## Create dimensions
-
-A hopefully familiar step by now: creating our chart dimensions.
 
 Histograms are easiest to read when they are wider than they are tall. Let's set the width before defining the rest of our dimensions so we can use it to calculate the height. We'll also be able to quickly change the width later and keep the same aspect ratio for our chart.
 
@@ -90,19 +84,17 @@ Let's use the width to set the width and height of our chart. We'll leave a larg
 ```js
 let dimensions = {
   width: width,
-  height: width \* 0.6,
+  height: width * 0.6,
   margin: {
     top: 30,
     right: 10,
     bottom: 50,
     left: 50,
   },
-}
+};
 ```
 
-Remember, our wrapper encompasses the whole chart. If we subtract our margins, we'll get the size of our bounds which contain any data elements.
-
-### Chart terminology
+Our wrapper encompasses the whole chart. If we subtract our margins, we'll get the size of our bounds which contain any data elements.
 
 Now that we know the size of our wrapper and margins, we can calculate the size of our bounds.
 
@@ -123,7 +115,6 @@ async function drawBars() {
   const xAccessor = (d) => d.humidity;
 
   // 2. Create chart dimensions
-
   const width = 600;
   let dimensions = {
     width: width,
@@ -140,7 +131,31 @@ async function drawBars() {
   dimensions.boundedHeight =
     dimensions.height - dimensions.margin.top - dimensions.margin.bottom;
 }
+
 drawBars();
+```
+
+## Draw the Canvas
+
+Let's create our wrapper element. We want to select the existing element, add a new `<svg>` element, and set its width and height.
+
+```js
+const wrapper = d3
+  .select("#wrapper")
+  .append("svg")
+  .attr("width", dimensions.width)
+  .attr("height", dimensions.height);
+```
+
+Bounds are a `<g>` element that will contain our main chart bits and be shifted to respect our top and left margins:
+
+```js
+const bounds = wrapper
+  .append("g")
+  .style(
+    "transform",
+    `translate(${dimensions.margin.left}px, ${dimensions.margin.top}px)`
+  );
 ```
 
 ## Create scales
@@ -161,21 +176,21 @@ const xScale = d3
 
 Now we need to create our yScale.
 
-But wait a minute! We can't make a y scale without knowing the range of frequencies we need to cover. Let's create our data bins first.
+We can't make a y scale without knowing the range of frequencies we need to cover. Let's create our data bins first.
 
-## Creating Bins
+### Creating Bins
 
-How can we split our data into bins, and what size should those bins be? We could do this manually by looking at the domain and organizing our days into groups, but that sounds tedious.
+How can we split our data into bins, and what size should those bins be? We could do this manually by looking at the domain and organizing our days into groups, but thats tedious.
 
 Thankfully, we can use d3-array's `d3.bin()` method to create a bin generator. This generator will convert our dataset into an array of bins - we can even choose how many bins we want!
 
-Let's create a new generator:
+Create a new generator:
 
 ```js
 const binsGenerator = d3.bin();
 ```
 
-Similar to making a scale, we'll pass a domain to the generator to tell it the range of numbers we want to cover.
+Similar to making a scale, we pass a domain to the generator to tell it the range of numbers we want to cover.
 
 ```js
 const binsGenerator = d3.bin().domain(xScale.domain());
@@ -209,18 +224,17 @@ Let's take a look at these bins by logging them to the console: `console.log(bin
 
 Each bin is an array with the following structure:
 
-each item is a matching data point. For example, the first bin has no matching days — this is likely because we used .nice() to round out our x scale.
+- each item is a matching data point. For example, the first bin has no matching days — this is likely because we used `.nice()` to round out our x scale.
+- there is an x0 key that shows the lower bound of included humidity values
+- there is an x1 key that shows the upper bound of included humidity values. For example, a bin with a x1 value of 1 will include values up to 1, but not 1 itself
 
-there is an x0 key that shows the lower bound of included humidity values (inclusive)
-there is an x1 key that shows the upper bound of included humidity values (exclusive).
+> Note how there are 15 bins — our bin generator was aiming for 13 bins but decided that 15 bins were more appropriate. This was a good decision, creating bins with a sensible size of 0.05. If our bin generator had been more strict about the number of bins, our bins would have ended up with a size of 0.06666667, which is harder to reason about. To extract insights from a chart, readers will mentally convert awkward numbers into rounder numbers to make sense of them. We do that work for them.
 
-For example, a bin with a x1 value of 1 will include values up to 1, but not 1 itself
-Note how there are 15 bins in my example — our bin generator was aiming for 13 bins but decided that 15 bins were more appropriate. This was a good decision, creating bins with a sensible size of 0.05. If our bin generator had been more strict about the number of bins, our bins would have ended up with a size of 0.06666667, which is harder to reason about. To extract insights from a chart, readers will mentally convert awkward numbers into rounder numbers to make sense of them. Let's do that work for them.
-If we want, we can specify an exact number of bins by instead passing an array of thresholds. For example, we could specify 5 bins with `.thresholds([0, 0.2, 0.4, 0.6, 0.8, 1])`.
+> If we want, we can specify an exact number of bins by instead passing an array of thresholds. For example, we could specify 5 bins with `.thresholds([0, 0.2, 0.4, 0.6, 0.8, 1])`.
 
-## Creating the y scale
+### Creating the y scale
 
-Okay great, now we can use these bins to create our y scale. First, let's create a y accessor function and throw it at the top of our file. Now that we know the shape of the data that we'll use to create our data elements, we can specify how to access the y value in one place.
+Now we can use these bins to create our y scale. First, let's create a y accessor function and place it at the top of our file. Now that we know the shape of the data that we'll use to create our data elements, we can specify how to access the y value in one place.
 
 ```js
 const yAccessor = (d) => d.length;
@@ -251,7 +265,7 @@ const yScale = d3
   .nice();
 ```
 
-Final code for this lesson#
+Code so far:
 
 ```js
 async function drawBars() {
@@ -316,16 +330,17 @@ async function drawBars() {
     .range([dimensions.boundedHeight, 0])
     .nice();
 }
+
 drawBars();
 ```
 
 ## Draw data
 
-We finally get to draw our bars! We draw them in groups, so we can position them as well as labels.
+We draw our bars in groups so we can position them as well as labels.
 
 Our plan is to create one bar for each bin, with a label on top of each bar.
 
-We'll need one bar for each item in our bins array — this is a sign that we'll want to use the data bind concept we learned in Module 2.
+We'll need one bar for each item in our bins array — this is a sign that we'll want to use the data bind concept.
 
 Let's first create a `<g>` element to contain our bins. This will help keep our code organized and isolate our bars in the DOM.
 
@@ -353,14 +368,11 @@ Next up we'll draw our bars, but first we should calculate any constants that we
 
 In this case, the only constant that we can set ahead of time is the padding between bars. Giving them some space helps distinguish individual bars, but we don't want them too far apart - that will make them hard to compare and take away from the overall shape of the distribution.
 
-Chart design tip: putting a space between bars helps distinguish individual bars
-code/03-making-a-bar-chart/completed/draw-bars.js
-
 ```js
 const barPadding = 1;
 ```
 
-Now we are armed warriors and are ready to charge into battle! Each bar is a rectangle, so we'll append a `<rect>` to each of our `<g>` elements.
+Each bar is a rectangle, so we'll append a `<rect>` to each of our `<g>` elements.
 
 ```js
 const barRects = binGroups
@@ -375,7 +387,7 @@ Let's start with the x value, which will corresponds to the left side of the bar
 
 But `x0` is a humidity level, not a pixel. So let's use `xScale()` to convert it to pixel space.
 
-Lastly, we need to offset it by the barPadding we set earlier.
+Lastly, we need to offset it by the `barPadding` we set earlier.
 
 ```js
 .attr("x", d => xScale(d.x0) + barPadding / 2)
@@ -385,9 +397,9 @@ Lastly, we need to offset it by the barPadding we set earlier.
 
 We could create accessor functions for the `x0` and `x1` properties of each bin if we were concerned about the structure of our bins changing. In this case, it would be overkill since:
 
-- we didn't specify the structure of each bin, d3.bin() did
-- we're not going to change the way we access either of these values since they're built in to d3.bin()
-  the way we access these properties is very straightforward. If the values were more nested or required computation, we could definitely benefit from accessor functions.
+- we didn't specify the structure of each bin, `d3.bin()` did
+- we're not going to change the way we access either of these values since they're built in to `d3.bin()`
+- the way we access these properties is very straightforward. If the values were more nested or required computation, we could definitely benefit from accessor functions.
 
 Next, we'll specify the `<rect>`'s y attribute which corresponds to the top of the bar. We'll use our `yAccessor()` to grab the frequency and use our scale to convert it into pixel space.
 
@@ -398,7 +410,7 @@ Next, we'll specify the `<rect>`'s y attribute which corresponds to the top of t
 
 To find the width of a bar, we need to subtract the x0 position of the left side of the bar from the x1 position of the right side of the bar.
 
-We'll need to subtract the bar padding from the total width to account for spaces between bars. Sometimes we'll get a bar with a width of 0, and subtracting the barPadding will bring us to -1. To prevent passing our <rect>s a negative width, we'll wrap our value with d3.max([0, width]).
+We'll need to subtract the bar padding from the total width to account for spaces between bars. Sometimes we'll get a bar with a width of 0, and subtracting the barPadding will bring us to -1. To prevent passing our `<rect>`s a negative width, we'll wrap our value with d3.max([0, width]).
 
 ```js
 .attr("width", d => d3.max([0, xScale(d.x1) - xScale(d.x0) - barPadding
@@ -426,7 +438,7 @@ const barRects = binGroups
 
 Now we're starting to see the beginnings of our histogram.
 
-Final code for this lesson
+Final code for this part:
 
 ```js
 async function drawBars() {
@@ -511,22 +523,21 @@ drawBars();
 
 ## Adding Labels
 
-We draw a label over each bar, showing the number of points within that bin.
-
-Let's add labels to show the count for each of these bars.
+Draw a label over each bar, showing the number of points within that bin.
 
 We can keep our chart clean by only adding labels to bins with any relevant days — having 0s in empty spaces is unhelpful visual clutter. We can identify which bins have no data by their lack of a bar, no need to call it out with a label.
 
 d3 selections have a `.filter()` method that acts the same way the native Array method does. `.filter()` accepts one parameter: a function that accepts one data point and returns a value. Any items in our dataset who return a falsey value will be removed.
 
-By "falsey", we're referring to any value that evaluates to false. Maybe surprisingly, this includes values other than false, such as 0, null, undefined, "", and NaN. Keep in mind that empty arrays [] and object {} evaluate to truthy. If you're curious, read more here.
-We can use yAccessor() as shorthand for d => yAccessor(d) != 0 because 0 is falsey.
+> By "falsey", we're referring to any value that evaluates to false. This includes values other than false, such as 0, null, undefined, "", and NaN. Keep in mind that empty arrays [] and object {} evaluate to truthy. If you're curious, [read more here](https://developer.mozilla.org/en-US/docs/Glossary/Falsy).
+
+We can use `yAccessor()` as shorthand for `d => yAccessor(d) != 0` because `0` is falsey.
 
 ```js
 const barText = binGroups.filter(yAccessor);
 ```
 
-Since these labels are just text, we'll want to use the SVG <text> element we've been using for our axis labels.
+Since these labels are just text, we'll want to use the SVG `<text>` element we've been using for our axis labels.
 
 ```js
 const barText = binGroups.filter(yAccessor).append("text");
@@ -551,7 +562,7 @@ const barText = binGroups
   .attr("y", (d) => yScale(yAccessor(d)) - 5);
 ```
 
-Next, we'll display the count of days in the bin using our yAccessor() function. Note: again, we can use yAccessor() as shorthand for d => yAccessor(d).
+Next, we'll display the count of days in the bin using our `yAccessor()` function. Note: again, we can use `yAccessor()` as shorthand for `d => yAccessor(d)`.
 
 ```js
 const barText = binGroups
@@ -574,7 +585,7 @@ const barText = binGroups
   .style("text-anchor", "middle");
 ```
 
-After adding a few styles to decrease the visual importance of our labels...
+Add a few styles to decrease the visual importance of our labels:
 
 ```js
 const barText = binGroups
@@ -589,7 +600,7 @@ const barText = binGroups
   .style("font-family", "sans-serif");
 ```
 
-...we should see the count of days for each of our bars!
+We should see the count of days for each of our bars.
 
 Final code:
 
@@ -691,21 +702,21 @@ We draw a line depicting the mean of our distribution, as well as our axes.
 
 When looking at the shape of a distribution, it can be helpful to know where the mean is.
 
-The mean is just the average — the center of a set of numbers. To calculate the mean, you would divide the sum by the number of values. For example, the mean of [1, 2, 3, 4, 5] would be (1 + 2 + 3 + 4 + 5) / 5 = 3.
+The mean is just the average — the center of a set of numbers. To calculate the mean, you would divide the sum by the number of values. For example, the mean of `[1, 2, 3, 4, 5]` would be `(1 + 2 + 3 + 4 + 5) / 5 = 3`.
 
-Instead of calculating the mean by hand, we can use d3.mean() to grab that value. Like many d3 methods we've used, we pass the dataset as the first parameter and an optional accessor function as the second.
+Instead of calculating the mean by hand, we can use `d3.mean()` to grab that value. Like many d3 methods we've used, we pass the dataset as the first parameter and an optional accessor function as the second.
 
 ```js
-const mean = d3.mean(dataset, metricAccessor);
+const mean = d3.mean(dataset, xAccessor);
 ```
 
-Let's see how comfortable we are with drawing an unfamiliar SVG element: `<line>`. A `<line>` element will draw a line between two points: [x1, y1] and [x2, y2]. Using this knowledge, let's add a line to our bounds that is:
+We'll use the SVG element `<line>`. A `<line>` element will draw a line between two points: `[x1, y1]` and `[x2, y2]`.
+
+Let's add a line to our bounds that is:
 
 - at the mean humidity level,
 - starting 15px above our chart, and
 - ending at our x axis.
-
-How close can you get before looking at the following code?
 
 ```js
 const meanLine = bounds
@@ -716,7 +727,7 @@ const meanLine = bounds
   .attr("y2", dimensions.boundedHeight);
 ```
 
-Let's add some styles to the line so we can see it (by default, `<line>`s have no stroke color) and to distinguish it from an axis. SVG element strokes can be split into dashes with the stroke-dasharray attribute. The lines alternate between the stroke color and transparent, starting with transparent. We define the line lengths with a space-separated list of values (which will be repeated until the line is drawn).
+Let's add some styles to the line so we can see it (by default, `<line>`s have no stroke color) and to distinguish it from an axis. SVG element strokes can be split into dashes with the `stroke-dasharray` attribute. The lines alternate between the stroke color and transparent, starting with transparent. We define the line lengths with a space-separated list of values which will be repeated until the line is drawn.
 
 Let's make our lines dashed with a 2px long maroon dash and a 4px long gap.
 
@@ -762,9 +773,9 @@ Now our mean line is clear to our readers.
 
 ## Draw axes
 
-As usual, our last task here is to draw our axes. But we're in for a treat! Since we're labeling the y value of each of our bars, we won't need a y axis. We just need an x axis and we're set!
+Our next task here is to draw our axes. Since we're labeling the y value of each of our bars, we won't need a y axis. We just need an x axis.
 
-We'll start by making our axis generator — our axis will be along the bottom of the chart so we'll be using d3.axisBottom().
+We'll start by making our axis generator — our axis will be along the bottom of the chart so we'll be using `d3.axisBottom()`.
 
 ```js
 const xAxisGenerator = d3.axisBottom().scale(xScale);
@@ -779,7 +790,7 @@ const xAxis = bounds
   .style("transform", `translateY(${dimensions.boundedHeight}px)`);
 ```
 
-And lastly, let's throw a label on there to make it clear what the tick labels represent.
+Add a label to make it clear what the tick labels represent:
 
 ```js
 const xAxisLabel = xAxis
@@ -790,20 +801,6 @@ const xAxisLabel = xAxis
   .style("font-size", "1.4em")
   .text("Humidity");
 ```
-
-We're done drawing our peripherals!
-
-<!-- # Set up interactions
-
-Next, we would set up any chart interactions. We don't have any interactions for this chart, but stay tuned — we'll cover this in the next chapter. -->
-
-# Looking at our chart
-
-Chart finished! Let's take a look at our distribution.
-
-Finished humidity histogram
-
-Our histogram looks somewhere in-between a normal and bimodal distribution. Don't worry if those terms make no sense right now — we cover distribution shapes in detail in Chapter 8 of the book.
 
 Final code:
 
