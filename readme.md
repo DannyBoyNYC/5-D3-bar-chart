@@ -1,5 +1,21 @@
 # Making a Bar Chart
 
+- [Making a Bar Chart](#making-a-bar-chart)
+  - [Deciding the chart type](#deciding-the-chart-type)
+  - [Histogram](#histogram)
+  - [Chart checklist](#chart-checklist)
+  - [Access data](#access-data)
+  - [Create dimensions](#create-dimensions)
+  - [Draw the Canvas](#draw-the-canvas)
+  - [Create scales](#create-scales)
+    - [Creating Bins](#creating-bins)
+    - [Creating the y scale](#creating-the-y-scale)
+  - [Draw data](#draw-data)
+  - [Adding Labels](#adding-labels)
+  - [Draw peripherals](#draw-peripherals)
+  - [Draw axes](#draw-axes)
+  - [Instructor Notes](#instructor-notes)
+
 We'll create a slightly more complex [bar chart](https://dataviz-exercises.netlify.app/bar-chart/index.html) using a histogram. For extra credit, we'll generalize our histogram function and loop through eight metrics in our dataset - creating many histograms to compare.
 
 ## Deciding the chart type
@@ -50,7 +66,7 @@ In our javascript file, let's grab the data from our JSON file, waiting until it
 const dataset = await d3.json("./data/my_weather_data.json");
 ```
 
-This time we're only interested in one metric for the whole chart. Remember, the y axis is plotting the frequency (i.e. the number of occurrences) of the metric whose values are on the x axis. So instead of an `xAccessor()` and `yAccessor()`, we define a single metricAccessor().
+This time we're only interested in one metric for the whole chart. Remember, the y axis is plotting the frequency (i.e. the number of occurrences) of the metric whose values are on the x axis. So instead of an `xAccessor()` and `yAccessor()`, we define a single metricAccessor:
 
 ```js
 const xAccessor = (d) => d.humidity;
@@ -180,9 +196,9 @@ We can't make a y scale without knowing the range of frequencies we need to cove
 
 ### Creating Bins
 
-How can we split our data into bins, and what size should those bins be? We could do this manually by looking at the domain and organizing our days into groups, but thats tedious.
+How can we split our data into bins, and what size should those bins be? We could do this manually by looking at the domain and organizing our days into groups, but that's tedious.
 
-Thankfully, we can use d3-array's `d3.bin()` method to create a bin generator. This generator will convert our dataset into an array of bins - we can even choose how many bins we want!
+We can use d3-array's `d3.bin()` method to create a bin generator. This generator will convert our dataset into an array of bins - we can also choose how many bins we want.
 
 Create a new generator:
 
@@ -196,7 +212,7 @@ Similar to making a scale, we pass a domain to the generator to tell it the rang
 const binsGenerator = d3.bin().domain(xScale.domain());
 ```
 
-Next, we'll need to tell our generator how to get the the humidity value, since our dataset contains objects instead of values. We can do this by passing our metricAccessor() function to the .value() method.
+Next, we'll need to tell our generator how to get the the humidity value, since our dataset contains objects instead of values. We can do this by passing our xAccessor function to the `.value()` method.
 
 ```js
 const binsGenerator = d3.bin().domain(xScale.domain()).value(xAccessor);
@@ -204,7 +220,7 @@ const binsGenerator = d3.bin().domain(xScale.domain()).value(xAccessor);
 
 We can also tell our generator that we want it to aim for a specific number of bins. When we create our bins, we won't necessarily get this exact amount, but it should be close.
 
-Let's aim for 13 bins — this should make sure we have enough granularity to see the shape of our distribution without too much noise. Keep in mind that the number of bins is the number of thresholds + 1.
+Let's aim for 13 bins — this should make sure we have enough granularity to see the shape of our distribution without too much noise. The number of bins is the number of thresholds + 1.
 
 ```js
 const binsGenerator = d3
@@ -214,23 +230,22 @@ const binsGenerator = d3
   .thresholds(12);
 ```
 
-Our bin generator is ready to go. Let's create our bins by feeding it our data.
+Create the bins by feeding it our data.
 
 ```js
 const bins = binsGenerator(dataset);
 ```
 
-Let's take a look at these bins by logging them to the console: `console.log(bins)`.
+Take a look at these bins by logging them: `console.log(bins)`.
 
 Each bin is an array with the following structure:
 
 - each item is a matching data point. For example, the first bin has no matching days — this is likely because we used `.nice()` to round out our x scale.
 - there is an x0 key that shows the lower bound of included humidity values
-- there is an x1 key that shows the upper bound of included humidity values. For example, a bin with a x1 value of 1 will include values up to 1, but not 1 itself
+- there is an x1 key that shows the upper bound of included humidity values - a bin with a x1 value of 1 will include values up to 1, but not 1 itself
+- there is a length property
 
-> Note how there are 15 bins — our bin generator was aiming for 13 bins but decided that 15 bins were more appropriate. This was a good decision, creating bins with a sensible size of 0.05. If our bin generator had been more strict about the number of bins, our bins would have ended up with a size of 0.06666667, which is harder to reason about. To extract insights from a chart, readers will mentally convert awkward numbers into rounder numbers to make sense of them. We do that work for them.
-
-> If we want, we can specify an exact number of bins by instead passing an array of thresholds. For example, we could specify 5 bins with `.thresholds([0, 0.2, 0.4, 0.6, 0.8, 1])`.
+> If you want, you can specify an exact number of bins by passing an array of thresholds. For example, we could specify 5 bins with `.thresholds([0, 0.2, 0.4, 0.6, 0.8, 1])`.
 
 ### Creating the y scale
 
@@ -240,11 +255,11 @@ Now we can use these bins to create our y scale. First, let's create a y accesso
 const yAccessor = (d) => d.length;
 ```
 
-Let's use our new accessor function and our bins to create that y scale. As usual, we'll want to make a linear scale. This time, however, we'll want to start our y axis at zero.
+Let's use our new accessor function and our bins to create the y scale. As usual, we'll want to make a linear scale. This time, however, we'll want to start our y axis at zero.
 
 Previously, we wanted to represent the extent of our data since we were plotting metrics that had no logical bounds (temperature and humidity level). But the number of days that fall in a bin is bounded at 0 — you can't have negative days in a bin.
 
-Instead of using `d3.extent()`, we can use another method from d3-array: `d3.max()`. This might sound familiar — we've used its counterpart, `d3.min()`. `d3.max()` takes the same arguments: an array and an accessor function.
+Instead of using `d3.extent()`, we can use another method from d3-array: `d3.max()`. We've used its counterpart, `d3.min()`. `d3.max()` takes the same arguments: an array and an accessor function.
 
 Note that we're passing `d3.max()` our bins instead of our original dataset — we want to find the maximum number of days in a bin, which is only available in our computed bins array.
 
@@ -362,7 +377,7 @@ Next, we'll create our `<g>` elements, using `.join()` to target all of our bins
 const binGroups = binsGroup.selectAll("g").data(bins).join("g");
 ```
 
-The above code will create one new `<g>` element for each bin. We're going to place our bars within this group.
+Examine the svg in dev tools. The above creates one new `<g>` element for each bin. We're going to place our bars within these groups.
 
 Next up we'll draw our bars, but first we should calculate any constants that we'll need.
 
@@ -375,10 +390,7 @@ const barPadding = 1;
 Each bar is a rectangle, so we'll append a `<rect>` to each of our `<g>` elements.
 
 ```js
-const barRects = binGroups
-  .append("rect")
-  .attr("x", (d) => xScale(d.x0) + barPadding / 2)
-  .attr("y", (d) => yScale(yAccessor(d)));
+const barRects = binGroups.append("rect");
 ```
 
 Remember, `<rect>`s need four attributes: x, y, width, and height.
@@ -387,12 +399,11 @@ Let's start with the x value, which will corresponds to the left side of the bar
 
 But `x0` is a humidity level, not a pixel. So let's use `xScale()` to convert it to pixel space.
 
-Lastly, we need to offset it by the `barPadding` we set earlier.
+We also need to offset it by the `barPadding` we set earlier.
 
 ```js
 .attr("x", d => xScale(d.x0) + barPadding / 2)
 .attr("y", d => yScale(yAccessor(d)))
-.attr("width", d => d3.max([
 ```
 
 We could create accessor functions for the `x0` and `x1` properties of each bin if we were concerned about the structure of our bins changing. In this case, it would be overkill since:
@@ -405,26 +416,24 @@ Next, we'll specify the `<rect>`'s y attribute which corresponds to the top of t
 
 ```js
 .attr("y", d => yScale(yAccessor(d)))
-.attr("width", d => d3.max([0,
 ```
 
-To find the width of a bar, we need to subtract the x0 position of the left side of the bar from the x1 position of the right side of the bar.
+To find the width of a bar, we need to subtract the `x0` position of the left side of the bar from the `x1` position of the right side of the bar.
 
 We'll need to subtract the bar padding from the total width to account for spaces between bars. Sometimes we'll get a bar with a width of 0, and subtracting the barPadding will bring us to -1. To prevent passing our `<rect>`s a negative width, we'll wrap our value with d3.max([0, width]).
 
 ```js
 .attr("width", d => d3.max([0, xScale(d.x1) - xScale(d.x0) - barPadding
 ]))
-.attr("height", d => dimensions.boundedHeight - yScale(yAccessor(d))
 ```
 
 Lastly, we'll calculate the bar's height by subtracting the y value from the bottom of the y axis. Since our y axis starts from 0, we can use our boundedHeight.
 
 ```js
-.attr("height", d => dimensions.boundedHeight- yScale(yAccessor(d)))
+.attr("height", d => dimensions.boundedHeight - yScale(yAccessor(d)))
 ```
 
-Let's put that all together and change the bar fill to blue.
+Put that all together and change the bar fill to blue:
 
 ```js
 const barRects = binGroups
@@ -529,7 +538,7 @@ We can keep our chart clean by only adding labels to bins with any relevant days
 
 d3 selections have a `.filter()` method that acts the same way the native Array method does. `.filter()` accepts one parameter: a function that accepts one data point and returns a value. Any items in our dataset who return a falsey value will be removed.
 
-> By "falsey", we're referring to any value that evaluates to false. This includes values other than false, such as 0, null, undefined, "", and NaN. Keep in mind that empty arrays [] and object {} evaluate to truthy. If you're curious, [read more here](https://developer.mozilla.org/en-US/docs/Glossary/Falsy).
+> By "falsey", we're referring to any value that evaluates to false. This includes values other than false, such as `0, null, undefined, "", and NaN`. Bear in mind that empty arrays `[]` and object `{}` evaluate to truthy. If you're curious, [read more here](https://developer.mozilla.org/en-US/docs/Glossary/Falsy).
 
 We can use `yAccessor()` as shorthand for `d => yAccessor(d) != 0` because `0` is falsey.
 
@@ -562,7 +571,7 @@ const barText = binGroups
   .attr("y", (d) => yScale(yAccessor(d)) - 5);
 ```
 
-Next, we'll display the count of days in the bin using our `yAccessor()` function. Note: again, we can use `yAccessor()` as shorthand for `d => yAccessor(d)`.
+Next, we'll display the count of days in the bin using our `yAccessor()` function.
 
 ```js
 const barText = binGroups
@@ -710,7 +719,7 @@ Instead of calculating the mean by hand, we can use `d3.mean()` to grab that val
 const mean = d3.mean(dataset, xAccessor);
 ```
 
-We'll use the SVG element `<line>`. A `<line>` element will draw a line between two points: `[x1, y1]` and `[x2, y2]`.
+We'll use an SVG `<line>` to draw a line between two points: `[x1, y1]` and `[x2, y2]`.
 
 Let's add a line to our bounds that is:
 
