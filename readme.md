@@ -1,8 +1,6 @@
 # Making a Bar Chart
 
-Next, we embark on a mission to create a slightly more complex chart: a bar chart. We talk about what we can learn from a bar chart, and what a histogram is.
-
-We'll walk through one last "basic" chart — once finished, you'll feel very comfortable with each step and we'll move on to animations and interactions.
+We'll create a slightly more complex [bar chart](https://dataviz-exercises.netlify.app/bar-chart/index.html) using a histogram. For extra credit, we'll generalize our histogram function and loop through eight metrics in our dataset - creating many histograms to compare.
 
 ## Deciding the chart type
 
@@ -15,11 +13,7 @@ For example:
 - Does it vary consistently, with no standard value?
 - Or are there really humid days and really dry days, with none in-between?
 
-Looking at the scatter plot we just made, we can see the daily humidity values from the dots' vertical placement.
-
-<!-- Finished scatter plot -->
-
-But it's hard to answer our questions - do most of our dots fall close the middle of the chart? We're not entirely sure.
+Looking at the scatter plot we just made, we can see the daily humidity values from the dots' vertical placement but it's hard to answer our questions - do most of our dots fall close the middle of the chart? We're not entirely sure.
 
 Instead, let's make a histogram.
 
@@ -27,47 +21,32 @@ Instead, let's make a histogram.
 
 A histogram is a bar chart that shows the distribution of one metric, with the metric values on the x axis and the frequency of values on the y axis.
 
-Histogram graphic
+In order to show the frequency, _values are placed in equally-sized bins_ (visualized as individual bars). For example, we could make bins for dew point temperatures that span 10 degrees - these would look something like `[0-10, 10-20, 20-30, ...]`. A dew point of 15 degrees would be counted in the second bin: `10-20`.
 
-In order to show the frequency, values are placed in equally-sized bins (visualized as individual bars). For example, we could make bins for dew point temperatures that span 10 degrees - these would look something like [0-10, 10-20, 20-30, ...]. A dew point of 15 degrees would be counted in the second bin: 10-20.
-
-The number of and size of bins is up to the implementor - you could have a histogram with only 3 bins or one with 100 bins. There are standards that can be followed (feel free to check out d3's built-in formulas), but we can generally decide the number based on what suits the data and what's easy to read.
+The number of and size of bins is up to the implementor - you could have a histogram with only 3 bins or one with 100 bins. There are standards that can be followed - check out [d3's built-in formulas](https://github.com/d3/d3-array#bin-thresholds) and the [examples for bins](https://github.com/d3/d3-array#bins) - but we can generally decide the number based on what suits the data and what's easy to read.
 
 Our goal is to make a histogram of humidity values. This will show us the distribution of humidity values and help answer our questions.
 
 - Do most days stay around the same level of humidity?
 - Or are there two types of days: humid and dry? Are there crazy humid days?
 
-Finished humidity histogram
+## Chart checklist
 
-To interpret the above histogram, it shows that we have 48 days in our dataset with a humidity value between 0.55 and 0.6
-
-For extra credit, we'll generalize our histogram function and loop through eight metrics in our dataset - creating many histograms to compare.
-
-Many histograms
-
-Access data
-
-Next, we grab our data and create our accessor function (only one this time!)
-
-Chart checklist
 To start, let's look over our chart-making checklist to remind ourselves of the necessary steps.
 
-- Access data
-- Create dimensions
-- Draw canvas
-- Create scales
-- Draw data
-- Draw peripherals
-- Set up interactions
+1. Access data
+1. Create dimensions
+1. Draw canvas
+1. Create scales
+1. Draw data
+1. Draw peripherals
+1. Set up interactions
 
-We'll breeze through most of these steps, reinforcing what we've already learned.
+We'll breeze through some of these steps, reinforcing what we've already learned.
 
 ## Access data
 
 In our javascript file, let's grab the data from our JSON file, waiting until it's loaded to continue.
-
-code/03-making-a-bar-chart/completed/draw-bars.js
 
 ```js
 const dataset = await d3.json("./data/my_weather_data.json");
