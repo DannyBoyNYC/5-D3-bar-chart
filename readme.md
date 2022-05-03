@@ -41,9 +41,13 @@ A histogram is a bar chart that shows the distribution of one metric, with the m
 
 In order to show the frequency, _values are placed in equally-sized bins_ (visualized as individual bars).
 
-For example, we could make bins for dew point temperatures that span 10 degrees - these would look something like `[0-10, 10-20, 20-30, ...]`. A dew point of 15 degrees would be counted in the second bin: `10-20`.
+For example, we could make bins for dew point temperatures that span 10 degrees - these would look like this:
 
-The number of and size of bins is up to the implementor - you could have a histogram with only 3 bins or one with 100 bins. There are standards that can be followed - check out [d3's built-in formulas](https://github.com/d3/d3-array#bin-thresholds) and the [examples for bins](https://github.com/d3/d3-array#bins) - but we can generally decide the number based on what suits the data and what's easy to read.
+`[0-10, 10-20, 20-30, ...]`
+
+A dew point of 15 degrees would be counted in the second bin: `10-20`.
+
+The number and size of bins is up to the implementor - you could have a histogram with only 3 bins or one with 100 bins. There are standards that can be followed - check out [d3's built-in formulas](https://github.com/d3/d3-array#bin-thresholds) and the [examples for bins](https://github.com/d3/d3-array#bins) - but we can generally decide the number based on what suits the data and what's easy to read.
 
 Our goal to make a histogram of humidity values will show us the distribution of humidity values and help answer the questions:
 
@@ -208,7 +212,7 @@ Similar to making a scale, we pass a domain to the generator to tell it the rang
 const binsGenerator = d3.bin().domain(xScale.domain());
 ```
 
-Next, we'll need to tell our generator how to get the the humidity value, since our dataset contains objects instead of values. We can do this by passing our xAccessor function to the `.value()` method.
+Next, we'll need to tell our generator how to get the the humidity value. We can do this by passing our xAccessor function to the `.value()` method.
 
 ```js
 const binsGenerator = d3.bin().domain(xScale.domain()).value(xAccessor);
@@ -248,10 +252,12 @@ Each bin is an array with the following structure:
 
 - each item is a matching data point
 - there is an x0 key that shows the lower bound of included humidity values
-- there is an x1 key that shows the upper bound of included humidity values - a bin with a x1 value of 1 will include values up to 1, but not 1 itself
+- there is an x1 key that shows the upper bound of included humidity values (a bin with a x1 value of 1 will include values up to 1, but not 1 itself)
 - there is a length property
 
-> If you want, you can specify an exact number of bins by passing an array of thresholds. For example, we could specify 5 bins with `.thresholds([0, 0.2, 0.4, 0.6, 0.8, 1])`.
+> If you want, you can specify an exact number of bins by passing an array of thresholds. For example, we could specify 5 bins with:
+>
+> `.thresholds([0, 0.2, 0.4, 0.6, 0.8, 1])`.
 
 ### Creating the y scale
 
@@ -267,7 +273,7 @@ Previously, we wanted to represent the extent of our data since we were plotting
 
 Instead of using `d3.extent()`, we can use another method from d3-array: `d3.max()`. We've used its counterpart, `d3.min()`. `d3.max()` takes the same arguments: an array and an accessor function.
 
-Note that we're passing `d3.max()` our bins instead of our original dataset — we want to find the maximum number of days in a bin, which is only available in our computed bins array.
+> Note that we're passing `d3.max()` our bins instead of our original dataset — we want to find the maximum number of days in a bin, which is only available in our computed bins array.
 
 Let's use `.nice()` here as well to give our bars a round top number.
 
@@ -356,7 +362,7 @@ Our plan is to create one bar for each bin, with a label on top of each bar.
 
 We'll need one bar for each item in our bins array — this is a sign that we'll want to use the data bind concept.
 
-Let's first create a `<g>` element to contain our bins. This will help keep our code organized and isolate our bars in the DOM.
+Let's first create a `<g>` element to contain all our bins. This will help keep our code organized and isolate our bars in the DOM.
 
 ```js
 const binsGroup = bounds.append("g");
@@ -392,7 +398,7 @@ Each bar is a rectangle, so we'll append a `<rect>` to each of our `<g>` element
 const barRects = binGroups.append("rect");
 ```
 
-Remember, `<rect>`s need four attributes: x, y, width, and height.
+Recall, `<rect>`s need four attributes: x, y, width, and height.
 
 Let's start with the x value, which corresponds to the left side of the bar. The bar will start at the lower bound of the bin, which we can find at the `x0` key.
 
@@ -403,8 +409,7 @@ We also need to offset it by the `barPadding` we set earlier.
 ```js
 const barRects = binGroups
   .append("rect")
-  .attr("x", (d) => xScale(d.x0) + barPadding / 2)
-  .attr("y", (d) => yScale(yAccessor(d)));
+  .attr("x", (d) => xScale(d.x0) + barPadding / 2);
 ```
 
 Next, we'll specify the `<rect>`'s y attribute which corresponds to the top of the bar. We'll use our `yAccessor()` to grab the frequency and use our scale to convert it into pixel space.
@@ -556,7 +561,7 @@ const barText = binGroups
   .attr("x", (d) => xScale(d.x0) + (xScale(d.x1) - xScale(d.x0)) / 2);
 ```
 
-Our `<text>`'s y position will be similar to the `<rect>`'s y position, but let's shift it up by 5 pixels to add a little gap.
+Our `<text>`'s `y` position will be similar to the `<rect>`'s y position, but let's shift it up by 5 pixels to add a little gap.
 
 ```js
 const barText = binGroups
@@ -566,7 +571,7 @@ const barText = binGroups
   .attr("y", (d) => yScale(yAccessor(d)) - 5);
 ```
 
-Next, we'll display the count of days in the bin using our `yAccessor()` function.
+Next, we'll display the count of days in the bin using our `yAccessor()` function:
 
 ```js
 const barText = binGroups
@@ -706,7 +711,13 @@ Draw a line depicting the mean of our distribution, as well as our axes.
 
 When looking at the shape of a distribution, it can be helpful to know where the mean is.
 
-The mean is just the average — the center of a set of numbers. To calculate the mean, you would divide the sum by the number of values. For example, the mean of `[1, 2, 3, 4, 5]` would be `(1 + 2 + 3 + 4 + 5) / 5 = 3`.
+The mean is just the average — the center of a set of numbers. To calculate the mean, you would divide the sum by the number of values. For example, the mean of:
+
+`[1, 2, 3, 4, 5]`
+
+would be
+
+`(1 + 2 + 3 + 4 + 5) / 5 = 3`.
 
 Instead of calculating the mean by hand, we can use `d3.mean()` to get the value. Like many d3 methods we've used, we pass the dataset as the first parameter and an optional accessor function as the second.
 
@@ -761,7 +772,7 @@ const meanLabel = bounds
 
 We can see the text but it isn't horizontally centered with our line.
 
-Let's center our text by adding the CSS property text-anchor: middle. This is a property specifically for setting the horizontal alignment of text in SVG.
+Let's center our text by adding the CSS property `text-anchor: middle`. This is a property specifically for setting the horizontal alignment of text in SVG.
 
 ```js
 const meanLabel = bounds
@@ -1212,7 +1223,7 @@ drawBars();
 
 ## Accessibility
 
-Note: switch back to `chart.js` (the single chart version of this exercise) before proceeding for simplicity. We'll be updating our completed single histogram in this section, without the extra histograms.
+Note: for simplicity, switch back to `chart.js` (the single chart version of this exercise) before proceeding. We'll be updating our completed single histogram in this section, without the additional histograms.
 
 Let's look at the ways to make our charts accessible to screen readers.
 
@@ -1575,7 +1586,7 @@ HTML:
 
 We could use d3 event listeners to change the bar's color on hover, but there's an alternative: CSS hover states. To add CSS properties that only apply when an element is hovered over, add `:hover` after the selector name. It's good practice to place this selector immediately after the non-hover styles to keep all bar styles in one place.
 
-We've added a new selector to the styles.css file to make our bars change their fill to purple when we hover over them:
+We've added a new selector to the `styles.css` file to make our bars change their fill to purple when we hover over them:
 
 ```css
 rect:hover {
@@ -1584,6 +1595,10 @@ rect:hover {
 ```
 
 Our bars should turn purple when we hover over them and back to blue when we move our mouse out.
+
+Note: comment out the `opacity: 0` line in the CSS to reveal the tooltip.
+
+To start getting a sense of how and when to use CSS over JavaScript for styling SVG, examine the CSS file and remove any styles that are now covered by css. Add classes as necessary.
 
 Now we know how to implement hover states in two ways: CSS hover states and event listeners. Why would we use one over the other?
 
@@ -1594,17 +1609,16 @@ Now we know how to implement hover states in two ways: CSS hover states and even
 Since we need to update our tooltip text and position when we hover over a bar, let's add our `mouseenter` and `mouseleave` event listeners at the bottom of our `.js` file. We can set ourselves up with named functions to keep our chained code clean and concise.
 
 ```js
+const onMouseEnter = (event, d) => {};
+const onMouseLeave = (event, d) => {};
+
 binGroups
   .select("rect")
   .on("mouseenter", onMouseEnter)
   .on("mouseleave", onMouseLeave);
-
-const onMouseEnter = (event, d) => {};
-
-const onMouseLeave = (event, d) => {};
 ```
 
-Starting with our `onMouseEnter()` function, we'll start by grabbing our tooltip element. If you look in our `index.html` file, you can see that our template starts with a tooltip with two children: a div to display the range and a div to display the value. We'll follow the common convention of using ids as hooks for JavaScript and classes as hooks for CSS. There are two main reasons for this distinction:
+Starting with our `onMouseEnter()` function, we'll start by grabbing our tooltip element. If you look in our `index.html` file, you can see that our template starts with a tooltip with two children: a div to display the range and a div to display the value. We'll follow the common convention of using `id`s as hooks for JavaScript and classes as hooks for CSS. There are two main reasons for this distinction:
 
 1. We can use classes in multiple places (if we wanted to style multiple elements at once) but we'll only use an id in one place. This ensures that we're selecting the correct element in our chart code
 1. We want to separate our chart manipulation code and our styling code — we should be able to move our chart hook without affecting the styles.
@@ -1624,7 +1638,7 @@ If we position it instead at the top left of our chart, we'll be able to shift i
 
 We can see that our tooltip is absolutely positioned all the way to the left and 12px above the top (to offset the bottom triangle). So why isn't it positioned at the top left of our chart?
 
-Absolutely positioned elements are placed relative to their containing block. The default containing block is the `<html>` element, but will be overridden by certain ancestor elements. The main scenario that will create a new containing block is if the element has a position other than the default (static). There are other scenarios, but they are much more rare (for example, if a transform is specified).
+Absolutely positioned elements are placed relative to their containing block. The default containing block is the `<html>` element, but will be overridden by certain ancestor elements. The main scenario that will create a new containing block is if the element has a position other than the default (`static`). There are other scenarios, but they are much more rare (for example, if a transform is specified).
 
 This means that our tooltip will be positioned at the top left of the nearest ancestor element that has a set position. Let's give our .wrapper element a position of relative.
 
@@ -1700,6 +1714,19 @@ tooltip
   .text([formatHumidity(d.x0), formatHumidity(d.x1)].join(" - "));
 ```
 
+e.g.:
+
+```js
+function onMouseEnter(event, d) {
+  tooltip.select("#count").text(yAccessor(d));
+  tooltip.select("#range").text([d.x0, d.x1].join(" - "));
+  const formatHumidity = d3.format(".2f");
+  tooltip
+    .select("#range")
+    .text([formatHumidity(d.x0), formatHumidity(d.x1)].join(" - "));
+}
+```
+
 An added benefit to our number formatting is that our range numbers are the same width for every value, preventing our tooltip from jumping around.
 
 Next, we want to position our tooltip horizontally centered above a bar when we hover over it. To calculate our tooltip's x position, we'll need to take three things into account:
@@ -1760,7 +1787,7 @@ Let's use `calc()` to offset our tooltip up half of its own width (-50%) and lef
 ```js
 tooltip.style(
   "transform",
-  `translate(` + `calc( -50% + ${x}px),` + `calc(-100% + ${y}px)` + `)`
+  `translate(calc( -50% + ${x}px), calc(-100% + ${y}px))`
 );
 ```
 
