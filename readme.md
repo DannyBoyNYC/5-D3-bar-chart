@@ -1452,9 +1452,108 @@ drawBars();
 
 ## Interactivity
 
-We add a tooltip to our histogram. This involves creating a tooltip, updating its contents to show information about the hovered bar, and moving above the hovered bar.
+Our goal is to add an informative tooltip that shows the humidity range and day count when a user hovers over a bar. This involves creating a tooltip, updating its contents to show information about the hovered bar, and moving above the hovered bar.
 
-Our goal is to add an informative tooltip that shows the humidity range and day count when a user hovers over a bar.
+Add the following HTML and CSS to the project:
+
+Styles:
+
+```css
+.wrapper {
+  position: relative;
+}
+
+.bin rect {
+  fill: cornflowerblue;
+}
+
+.bin rect:hover {
+  fill: purple;
+}
+
+.bin text {
+  text-anchor: middle;
+  fill: darkgrey;
+  font-size: 12px;
+  font-family: sans-serif;
+}
+
+.mean {
+  stroke: maroon;
+  stroke-dasharray: 2px 4px;
+}
+
+.x-axis-label {
+  fill: black;
+  font-size: 1.4em;
+  text-transform: capitalize;
+}
+
+body {
+  display: flex;
+  justify-content: center;
+  padding: 5em 2em;
+  font-family: sans-serif;
+}
+
+.tooltip {
+  opacity: 0;
+  position: absolute;
+  top: -12px;
+  left: 0;
+  padding: 0.6em 1em;
+  background: #fff;
+  text-align: center;
+  border: 1px solid #ddd;
+  z-index: 10;
+  transition: all 0.2s ease-out;
+  pointer-events: none;
+}
+
+.tooltip:before {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  width: 12px;
+  height: 12px;
+  background: white;
+  border: 1px solid #ddd;
+  border-top-color: transparent;
+  border-left-color: transparent;
+  transform: translate(-50%, 50%) rotate(45deg);
+  transform-origin: center center;
+  z-index: 10;
+}
+
+.tooltip-range {
+  margin-bottom: 0.2em;
+  font-weight: 600;
+}
+```
+
+HTML:
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <link rel="stylesheet" href="./styles.css" />
+    <title>My Histogram</title>
+  </head>
+  <body>
+    <div id="wrapper" class="wrapper">
+      <div id="tooltip" class="tooltip">
+        <div class="tooltip-range">Humidity: <span id="range"></span></div>
+        <div class="tooltip-value"><span id="count"></span> days</div>
+      </div>
+    </div>
+
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="./chart.js"></script>
+  </body>
+</html>
+```
 
 We could use d3 event listeners to change the bar's color on hover, but there's an alternative: CSS hover states. To add CSS properties that only apply when an element is hovered over, add `:hover` after the selector name. It's good practice to place this selector immediately after the non-hover styles to keep all bar styles in one place.
 
@@ -1497,7 +1596,7 @@ const onMouseLeave = (event, d) => {};
 Starting with our `onMouseEnter()` function, we'll start by grabbing our tooltip element. If you look in our `index.html` file, you can see that our template starts with a tooltip with two children: a div to display the range and a div to display the value. We'll follow the common convention of using ids as hooks for JavaScript and classes as hooks for CSS. There are two main reasons for this distinction:
 
 1. We can use classes in multiple places (if we wanted to style multiple elements at once) but we'll only use an id in one place. This ensures that we're selecting the correct element in our chart code
-1. We want to separate our chart manipulation code and our styling code — we should be able to move our chart hook without affecting the styles.
+2. We want to separate our chart manipulation code and our styling code — we should be able to move our chart hook without affecting the styles.
 
 If we open up our `styles.css`, we can see our basic tooltip styles, including using a pseudo-selector `.tooltip:before` to add an arrow pointing down (at the hovered bar). Also note that the tooltip is hidden (`opacity: 0`) and will transition any property changes (`transition: all 0.2s ease-out`). It also will not receive any mouse events (`pointer-events: none`) to prevent from stealing the mouse events we'll be implementing.
 
@@ -1934,6 +2033,7 @@ HTML:
       </div>
     </div>
 
+    <script src="https://d3js.org/d3.v7.min.js"></script>
     <script src="./chart.js"></script>
   </body>
 </html>
