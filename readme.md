@@ -14,8 +14,9 @@
   - [Adding Labels](#adding-labels)
   - [Draw peripherals](#draw-peripherals)
   - [Draw axes](#draw-axes)
-  - [Instructor Notes](#instructor-notes)
+  - [Multiple Metrics](#multiple-metrics)
   - [Accessibility](#accessibility)
+  - [Interactivity](#interactivity)
 
 We'll create a slightly more complex [bar chart](https://dataviz-exercises.netlify.app/bar-chart/index.html) using a histogram. For extra credit, we'll generalize our histogram function and loop through eight metrics in our dataset - creating many histograms to compare.
 
@@ -950,7 +951,9 @@ async function drawBars() {
 drawBars();
 ```
 
-## Instructor Notes
+## Multiple Metrics
+
+Note: save `chart.js` as `charts.js` into the same directory and change the HTML file so it links to `charts.js`.
 
 Generalizing our histogram drawing function and creating a chart for each weather metric we have access to will make sure that we understand what every line of code is doing.
 
@@ -1191,6 +1194,8 @@ drawBars();
 ```
 
 ## Accessibility
+
+Note: switch back to `chart.js` (the single chart version of this exercise) before proceeding for simplicity.
 
 Let's look at the ways to make our charts accessible to screen readers, and walk through changing our histogram.
 
@@ -1443,4 +1448,493 @@ async function drawBars() {
     .attr("aria-hidden", true);
 }
 drawBars();
+```
+
+## Interactivity
+
+We add a tooltip to our histogram. This involves creating a tooltip, updating its contents to show information about the hovered bar, and moving above the hovered bar.
+
+Our goal is to add an informative tooltip that shows the humidity range and day count when a user hovers over a bar.
+
+We could use d3 event listeners to change the bar's color on hover, but there's an alternative: CSS hover states. To add CSS properties that only apply when an element is hovered over, add `:hover` after the selector name. It's good practice to place this selector immediately after the non-hover styles to keep all bar styles in one place.
+
+Add a new selector to the styles.css file:
+
+```css
+.bin rect:hover {
+}
+```
+
+Let's have our bars change their fill to purple when we hover over them:
+
+```css
+.bin rect:hover {
+  fill: purple;
+}
+```
+
+Now our bars should turn purple when we hover over them and back to blue when we move our mouse out.
+
+Now we know how to implement hover states in two ways: CSS hover states and event listeners. Why would we use one over the other?
+
+> CSS hover states are good to use for more stylistic updates that don't require DOM changes. For example, changing colors or opacity.
+
+> JavaScript event listeners are what we need to turn to when we need a more complicated hover state. For example, if we want to update the text of a tooltip or move an element, we'll want to do that in JavaScript.
+
+Since we need to update our tooltip text and position when we hover over a bar, let's add our `mouseenter` and `mouseleave` event listeners at the bottom of our `.js` file. We can set ourselves up with named functions to keep our chained code clean and concise.
+
+```js
+binGroups
+  .select("rect")
+  .on("mouseenter", onMouseEnter)
+  .on("mouseleave", onMouseLeave);
+
+const onMouseEnter = (event, d) => {};
+
+const onMouseLeave = (event, d) => {};
+```
+
+Starting with our `onMouseEnter()` function, we'll start by grabbing our tooltip element. If you look in our `index.html` file, you can see that our template starts with a tooltip with two children: a div to display the range and a div to display the value. We'll follow the common convention of using ids as hooks for JavaScript and classes as hooks for CSS. There are two main reasons for this distinction:
+
+1. We can use classes in multiple places (if we wanted to style multiple elements at once) but we'll only use an id in one place. This ensures that we're selecting the correct element in our chart code
+1. We want to separate our chart manipulation code and our styling code — we should be able to move our chart hook without affecting the styles.
+
+If we open up our `styles.css`, we can see our basic tooltip styles, including using a pseudo-selector `.tooltip:before` to add an arrow pointing down (at the hovered bar). Also note that the tooltip is hidden (`opacity: 0`) and will transition any property changes (`transition: all 0.2s ease-out`). It also will not receive any mouse events (`pointer-events: none`) to prevent from stealing the mouse events we'll be implementing.
+
+Comment out the opacity: 0 property so we can get a look at our tooltip:
+
+```css
+.tooltip {
+    /* opacity: 0; */
+```
+
+Our tooltip is positioned in the top left of our page.
+
+If we position it instead at the top left of our chart, we'll be able to shift it based on the hovered bar's position in the chart.
+
+We can see that our tooltip is absolutely positioned all the way to the left and 12px above the top (to offset the bottom triangle). So why isn't it positioned at the top left of our chart?
+
+Absolutely positioned elements are placed relative to their containing block. The default containing block is the `<html>` element, but will be overridden by certain ancestor elements. The main scenario that will create a new containing block is if the element has a position other than the default (static). There are other scenarios, but they are much more rare (for example, if a transform is specified).
+
+This means that our tooltip will be positioned at the top left of the nearest ancestor element that has a set position. Let's give our .wrapper element a position of relative.
+
+```css
+.wrapper {
+  position: relative;
+}
+```
+
+Now our tooltip is located at the top left of our chart and ready to be shifted into place when a bar is hovered over.
+
+Start adding our mouse events in bars.js by grabbing the existing tooltip using its id (`#tooltip`). Our tooltip won't change once we load the page, so let's define it outside of our onMouseEnter() function.
+
+```js
+const tooltip = d3.select("#tooltip");
+function onMouseEnter(event, d) {}
+```
+
+Start fleshing out our `onMouseEnter()` function by updating our tooltip text to tell us about the hovered bar. Let's select the nested `#count` element and update it to display the `y` value of the bar. Remember, in our histogram the `y` value is the number of days in our dataset that fall in that humidity level range.
+
+```js
+const tooltip = d3.select("#tooltip");
+function onMouseEnter(event, d) {
+  tooltip.select("#count").text(yAccessor(d));
+}
+```
+
+Now our tooltip updates when we hover over a bar to show that bar's count.
+
+We can update our range value to match the hovered bar. The bar is covering a range of humidity values, so let's make an array of the values and join them with a `-` (which can be easier to read than a template literal).
+
+```js
+tooltip.select("#range").text([d.x0, d.x1].join(" - "));
+```
+
+Our tooltip now updates to display both the count and the range, but it might be a bit too precise.
+
+We could convert our range values to strings and slice them to a certain precision, but there's a better way - `d3.format()`.
+
+The [d3-format](https://github.com/d3/d3-format) module helps turn numbers into nicely formatted strings. Usually when we display a number, we'll want to parse it from its raw format. For example, we'd rather display 32,000 than 32000 — the former is easier to read and will help with scanning a list of numbers.
+
+If we pass `d3.format()` a format specifier string, it will create a formatter function. That formatter function will take one parameter (a number) and return a formatted string. There are many possible format specifier strings — let's go over the format for the options we'll use the most often.
+
+`[,][.precision][type]`
+
+Each of these specifiers is optional — if we use an empty string, our formatter will just return our number as a string. Let's talk about what each specifier tells our formatter.
+
+`,`: add commas every 3 digits to the left of the decimal place
+
+`.precision`: give me this many numbers after the decimal place.
+
+`type`: each specific type is declared by using a single letter or symbol. The most handy types are:
+
+- f: fixed point notation — give me `precision` many decimal points
+- r: decimal notation — give me `precision` many significant digits and pad the rest until the decimal point
+- %: percentage — multiply my number by 100 and return `precision` many decimal points
+
+Create a formatter for our humidity levels. Two decimal points should be enough to differentiate between ranges without overwhelming our user with too many 0s.
+
+```js
+const formatHumidity = d3.format(".2f");
+```
+
+Now we can use our formatter to clean up our humidity level numbers:
+
+```js
+const formatHumidity = d3.format(".2f");
+tooltip
+  .select("#range")
+  .text([formatHumidity(d.x0), formatHumidity(d.x1)].join(" - "));
+```
+
+An added benefit to our number formatting is that our range numbers are the same width for every value, preventing our tooltip from jumping around.
+
+Next, we want to position our tooltip horizontally centered above a bar when we hover over it. To calculate our tooltip's x position, we'll need to take three things into account:
+
+1. the bar's x position in the chart (xScale(d.x0)),
+1. half of the bar's width ((xScale(d.x1) - xScale(d.x0)) / 2`), and
+1. the margin by which our bounds are shifted right (dimensions.margin.left).
+
+Remember that our tooltip is located at the top left of our `wrapper` - the outer container of our chart. But since our bars are within our bounds, they are shifted by the margins we specified.
+
+Let's add these numbers together to get the `x` position of our tooltip:
+
+```js
+const x =
+  xScale(d.x0) + (xScale(d.x1) - xScale(d.x0)) / 2 + dimensions.margin.left;
+```
+
+When we calculate our tooltip's y position, we don't need to take into account the bar's dimensions because we want it placed above the bar. That means we'll only need to add two numbers:
+
+1. the bar's y position (`yScale(yAccessor(d))`), and
+1. the margin by which our bounds are shifted down (`dimensions.margin.top`)
+
+```js
+const y = yScale(yAccessor(d)) + dimensions.margin.top;
+```
+
+Use our x and y positions to shift our tooltip. Because we're working with a normal xHTML div, we'll use the CSS translate property.
+
+```js
+tooltip.style("transform", `translate(` + `${x}px,` + `${y}px` + `)`);
+```
+
+Our tooltip in the wrong position. It looks like we're positioning the top left of the tooltip in the right location (above the hovered bar).
+
+We want to position the bottom, center of our tooltip (the tip of the arrow) above the bar, instead. We could find the tooltip size by calling the `.getBoundingClientRect()` method, but there's a computationally cheaper way.
+
+There are a few ways to shift absolutely positioned elements using CSS properties:
+
+- top, left, right, and bottom
+- margins
+- transform: translate()
+
+All of these properties can receive percentage values, but some of them are based on different dimensions.
+
+- top and bottom: _percentage of the parent's height_
+- left and right: _percentage of the parent's width_
+- margins: _percentage of the parent's width_
+- transform: translate(): _percentage of the specified element_
+
+We're interested in shifting the tooltip based on its own height and width, so we'll need to use `transform: translate()`. But we're already applying a translate value — how can we set the translate value using a pixel amount and a width?
+
+CSS `calc()` comes to the rescue. We can tell CSS to calculate an offset based on values with different units. For example, the following CSS rule would cause an element to be 20 pixels wider than its container.
+
+`width: calc(100% + 20px);`
+
+Let's use `calc()` to offset our tooltip up half of its own width (-50%) and left -100% of its own height. This is in addition to our calculated x and y values.
+
+```js
+tooltip.style(
+  "transform",
+  `translate(` + `calc( -50% + ${x}px),` + `calc(-100% + ${y}px)` + `)`
+);
+```
+
+Now our tooltip moves to the exact location we want.
+
+We have one last task to do — hide the tooltip when we're not hovering over a bar. Un-comment the `opacity: 0` rule in styles so its hidden to start.
+
+```css
+.tooltip {
+    opacity: 0;
+```
+
+Jumping back to our .js file, we need to make our tooltip visible at the end of our `onMouseEnter()` function.
+
+```js
+tooltip.style("opacity", 1);
+```
+
+Lastly, we want to make our tooltip invisible again whenever our mouse leaves a bar. Let's add that to our `onMouseLeave()` function.
+
+```js
+function onMouseLeave() {
+  tooltip.style("opacity", 0);
+}
+```
+
+Final code:
+
+```js
+async function drawBars() {
+  // 1. Access data
+  const dataset = await d3.json("./data/my_weather_data.json");
+
+  const metricAccessor = (d) => d.humidity;
+  const yAccessor = (d) => d.length;
+
+  // 2. Create chart dimensions
+
+  const width = 600;
+  let dimensions = {
+    width: width,
+    height: width * 0.6,
+    margin: {
+      top: 30,
+      right: 10,
+      bottom: 50,
+      left: 50,
+    },
+  };
+  dimensions.boundedWidth =
+    dimensions.width - dimensions.margin.left - dimensions.margin.right;
+  dimensions.boundedHeight =
+    dimensions.height - dimensions.margin.top - dimensions.margin.bottom;
+
+  // 3. Draw canvas
+
+  const wrapper = d3
+    .select("#wrapper")
+    .append("svg")
+    .attr("width", dimensions.width)
+    .attr("height", dimensions.height);
+
+  const bounds = wrapper
+    .append("g")
+    .style(
+      "transform",
+      `translate(${dimensions.margin.left}px, ${dimensions.margin.top}px)`
+    );
+
+  // 4. Create scales
+
+  const xScale = d3
+    .scaleLinear()
+    .domain(d3.extent(dataset, metricAccessor))
+    .range([0, dimensions.boundedWidth])
+    .nice();
+
+  const binsGenerator = d3
+    .bin()
+    .domain(xScale.domain())
+    .value(metricAccessor)
+    .thresholds(12);
+
+  const bins = binsGenerator(dataset);
+
+  const yScale = d3
+    .scaleLinear()
+    .domain([0, d3.max(bins, yAccessor)])
+    .range([dimensions.boundedHeight, 0])
+    .nice();
+
+  // 5. Draw data
+
+  const binsGroup = bounds.append("g");
+
+  const binGroups = binsGroup
+    .selectAll("g")
+    .data(bins)
+    .join("g")
+    .attr("class", "bin");
+
+  const barPadding = 1;
+  const barRects = binGroups
+    .append("rect")
+    .attr("x", (d) => xScale(d.x0) + barPadding / 2)
+    .attr("y", (d) => yScale(yAccessor(d)))
+    .attr("width", (d) => d3.max([0, xScale(d.x1) - xScale(d.x0) - barPadding]))
+    .attr("height", (d) => dimensions.boundedHeight - yScale(yAccessor(d)))
+    .attr("fill", "cornflowerblue");
+
+  const barText = binGroups
+    .filter(yAccessor)
+    .append("text")
+    .attr("x", (d) => xScale(d.x0) + (xScale(d.x1) - xScale(d.x0)) / 2)
+    .attr("y", (d) => yScale(yAccessor(d)) - 5)
+    .text(yAccessor)
+    .style("text-anchor", "middle")
+    .attr("fill", "darkgrey")
+    .style("font-size", "12px")
+    .style("font-family", "sans-serif");
+
+  const mean = d3.mean(dataset, metricAccessor);
+  const meanLine = bounds
+    .append("line")
+    .attr("x1", xScale(mean))
+    .attr("x2", xScale(mean))
+    .attr("y1", -15)
+    .attr("y2", dimensions.boundedHeight)
+    .attr("stroke", "maroon")
+    .attr("stroke-dasharray", "2px 4px");
+
+  const meanLabel = bounds
+    .append("text")
+    .attr("x", xScale(mean))
+    .attr("y", -20)
+    .text("mean")
+    .attr("fill", "maroon")
+    .style("font-size", "12px")
+    .style("text-anchor", "middle");
+
+  // 6. Draw peripherals
+
+  const xAxisGenerator = d3.axisBottom().scale(xScale);
+
+  const xAxis = bounds
+    .append("g")
+    .call(xAxisGenerator)
+    .style("transform", `translateY(${dimensions.boundedHeight}px)`);
+
+  const xAxisLabel = xAxis
+    .append("text")
+    .attr("x", dimensions.boundedWidth / 2)
+    .attr("y", dimensions.margin.bottom - 10)
+    .attr("fill", "black")
+    .style("font-size", "1.4em")
+    .text("Humidity")
+    .style("text-transform", "capitalize");
+
+  // 7. Create interactions
+
+  binGroups
+    .select("rect")
+    .on("mouseenter", onMouseEnter)
+    .on("mouseleave", onMouseLeave);
+
+  const tooltip = d3.select("#tooltip");
+  function onMouseEnter(event, d) {
+    tooltip.select("#count").text(yAccessor(d));
+
+    const formatHumidity = d3.format(".2f");
+    tooltip
+      .select("#range")
+      .text([formatHumidity(d.x0), formatHumidity(d.x1)].join(" - "));
+
+    const x =
+      xScale(d.x0) + (xScale(d.x1) - xScale(d.x0)) / 2 + dimensions.margin.left;
+    const y = yScale(yAccessor(d)) + dimensions.margin.top;
+
+    tooltip.style(
+      "transform",
+      `translate(` + `calc( -50% + ${x}px),` + `calc(-100% + ${y}px)` + `)`
+    );
+
+    tooltip.style("opacity", 1);
+  }
+
+  function onMouseLeave() {
+    tooltip.style("opacity", 0);
+  }
+}
+drawBars();
+```
+
+Styles:
+
+```css
+.wrapper {
+  position: relative;
+}
+
+.bin rect {
+  fill: cornflowerblue;
+}
+
+.bin rect:hover {
+  fill: purple;
+}
+
+.bin text {
+  text-anchor: middle;
+  fill: darkgrey;
+  font-size: 12px;
+  font-family: sans-serif;
+}
+
+.mean {
+  stroke: maroon;
+  stroke-dasharray: 2px 4px;
+}
+
+.x-axis-label {
+  fill: black;
+  font-size: 1.4em;
+  text-transform: capitalize;
+}
+
+body {
+  display: flex;
+  justify-content: center;
+  padding: 5em 2em;
+  font-family: sans-serif;
+}
+
+.tooltip {
+  opacity: 0;
+  position: absolute;
+  top: -12px;
+  left: 0;
+  padding: 0.6em 1em;
+  background: #fff;
+  text-align: center;
+  border: 1px solid #ddd;
+  z-index: 10;
+  transition: all 0.2s ease-out;
+  pointer-events: none;
+}
+
+.tooltip:before {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  width: 12px;
+  height: 12px;
+  background: white;
+  border: 1px solid #ddd;
+  border-top-color: transparent;
+  border-left-color: transparent;
+  transform: translate(-50%, 50%) rotate(45deg);
+  transform-origin: center center;
+  z-index: 10;
+}
+
+.tooltip-range {
+  margin-bottom: 0.2em;
+  font-weight: 600;
+}
+```
+
+HTML:
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <link rel="stylesheet" href="./styles.css" />
+    <title>My Histogram</title>
+  </head>
+  <body>
+    <div id="wrapper" class="wrapper">
+      <div id="tooltip" class="tooltip">
+        <div class="tooltip-range">Humidity: <span id="range"></span></div>
+        <div class="tooltip-value"><span id="count"></span> days</div>
+      </div>
+    </div>
+
+    <script src="./chart.js"></script>
+  </body>
+</html>
 ```
