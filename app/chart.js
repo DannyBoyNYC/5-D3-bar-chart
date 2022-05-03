@@ -1,7 +1,11 @@
 async function drawBars() {
+  // 1. Access data
   const dataset = await d3.json("./data/my_weather_data.json");
-  const xAccessor = (d) => d.humidity;
+
+  const metricAccessor = (d) => d.humidity;
   const yAccessor = (d) => d.length;
+
+  // 2. Create chart dimensions
 
   const width = 600;
   let dimensions = {
@@ -14,17 +18,24 @@ async function drawBars() {
       left: 50,
     },
   };
-
   dimensions.boundedWidth =
     dimensions.width - dimensions.margin.left - dimensions.margin.right;
   dimensions.boundedHeight =
     dimensions.height - dimensions.margin.top - dimensions.margin.bottom;
+
+  // 3. Draw canvas
 
   const wrapper = d3
     .select("#wrapper")
     .append("svg")
     .attr("width", dimensions.width)
     .attr("height", dimensions.height);
+
+  wrapper
+    .attr("role", "figure")
+    .attr("tabindex", "0")
+    .append("title")
+    .text("Histogram looking at the distribution of humidity over 2016");
 
   const bounds = wrapper
     .append("g")
@@ -33,16 +44,18 @@ async function drawBars() {
       `translate(${dimensions.margin.left}px, ${dimensions.margin.top}px)`
     );
 
+  // 4. Create scales
+
   const xScale = d3
     .scaleLinear()
-    .domain(d3.extent(dataset, xAccessor))
+    .domain(d3.extent(dataset, metricAccessor))
     .range([0, dimensions.boundedWidth])
     .nice();
 
   const binsGenerator = d3
     .bin()
     .domain(xScale.domain())
-    .value(xAccessor)
+    .value(metricAccessor)
     .thresholds(12);
 
   const bins = binsGenerator(dataset);
@@ -53,10 +66,30 @@ async function drawBars() {
     .range([dimensions.boundedHeight, 0])
     .nice();
 
-  const binsGroup = bounds.append("g");
-  const binGroups = binsGroup.selectAll("g").data(bins).join("g");
-  const barPadding = 1;
+  // 5. Draw data
 
+  const binsGroup = bounds
+    .append("g")
+    .attr("tabindex", "0")
+    .attr("role", "list")
+    .attr("aria-label", "histogram bars");
+
+  const binGroups = binsGroup
+    .selectAll("g")
+    .data(bins)
+    .enter()
+    .append("g")
+    .attr("tabindex", "0")
+    .attr("role", "listitem")
+    .attr(
+      "aria-label",
+      (d) =>
+        `There were ${yAccessor(d)} days between ${d.x0
+          .toString()
+          .slice(0, 4)} and ${d.x1.toString().slice(0, 4)} humidity levels.`
+    );
+
+  const barPadding = 1;
   const barRects = binGroups
     .append("rect")
     .attr("x", (d) => xScale(d.x0) + barPadding / 2)
@@ -64,7 +97,6 @@ async function drawBars() {
     .attr("width", (d) => d3.max([0, xScale(d.x1) - xScale(d.x0) - barPadding]))
     .attr("height", (d) => dimensions.boundedHeight - yScale(yAccessor(d)))
     .attr("fill", "cornflowerblue");
-
   const barText = binGroups
     .filter(yAccessor)
     .append("text")
@@ -76,8 +108,7 @@ async function drawBars() {
     .style("font-size", "12px")
     .style("font-family", "sans-serif");
 
-  const mean = d3.mean(dataset, xAccessor);
-
+  const mean = d3.mean(dataset, metricAccessor);
   const meanLine = bounds
     .append("line")
     .attr("x1", xScale(mean))
@@ -95,14 +126,19 @@ async function drawBars() {
     .attr("fill", "maroon")
     .style("font-size", "12px")
     .style("text-anchor", "middle")
-    .style("font-family", "sans-serif");
+    .attr("role", "presentation")
+    .attr("aria-hidden", true);
+
+  // 6. Draw peripherals
 
   const xAxisGenerator = d3.axisBottom().scale(xScale);
 
   const xAxis = bounds
     .append("g")
     .call(xAxisGenerator)
-    .style("transform", `translateY(${dimensions.boundedHeight}px)`);
+    .style("transform", `translateY(${dimensions.boundedHeight}px)`)
+    .attr("role", "presentation")
+    .attr("aria-hidden", true);
 
   const xAxisLabel = xAxis
     .append("text")
@@ -110,7 +146,9 @@ async function drawBars() {
     .attr("y", dimensions.margin.bottom - 10)
     .attr("fill", "black")
     .style("font-size", "1.4em")
-    .text("Humidity");
+    .text("Humidity")
+    .style("text-transform", "capitalize")
+    .attr("role", "presentation")
+    .attr("aria-hidden", true);
 }
-
 drawBars();
