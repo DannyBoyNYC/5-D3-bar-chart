@@ -31,12 +31,6 @@ async function drawBars() {
     .attr("width", dimensions.width)
     .attr("height", dimensions.height);
 
-  wrapper
-    .attr("role", "figure")
-    .attr("tabindex", "0")
-    .append("title")
-    .text("Histogram looking at the distribution of humidity over 2016");
-
   const bounds = wrapper
     .append("g")
     .style(
@@ -68,26 +62,13 @@ async function drawBars() {
 
   // 5. Draw data
 
-  const binsGroup = bounds
-    .append("g")
-    .attr("tabindex", "0")
-    .attr("role", "list")
-    .attr("aria-label", "histogram bars");
+  const binsGroup = bounds.append("g");
 
   const binGroups = binsGroup
     .selectAll("g")
     .data(bins)
-    .enter()
-    .append("g")
-    .attr("tabindex", "0")
-    .attr("role", "listitem")
-    .attr(
-      "aria-label",
-      (d) =>
-        `There were ${yAccessor(d)} days between ${d.x0
-          .toString()
-          .slice(0, 4)} and ${d.x1.toString().slice(0, 4)} humidity levels.`
-    );
+    .join("g")
+    .attr("class", "bin");
 
   const barPadding = 1;
   const barRects = binGroups
@@ -97,6 +78,7 @@ async function drawBars() {
     .attr("width", (d) => d3.max([0, xScale(d.x1) - xScale(d.x0) - barPadding]))
     .attr("height", (d) => dimensions.boundedHeight - yScale(yAccessor(d)))
     .attr("fill", "cornflowerblue");
+
   const barText = binGroups
     .filter(yAccessor)
     .append("text")
@@ -125,9 +107,7 @@ async function drawBars() {
     .text("mean")
     .attr("fill", "maroon")
     .style("font-size", "12px")
-    .style("text-anchor", "middle")
-    .attr("role", "presentation")
-    .attr("aria-hidden", true);
+    .style("text-anchor", "middle");
 
   // 6. Draw peripherals
 
@@ -136,9 +116,7 @@ async function drawBars() {
   const xAxis = bounds
     .append("g")
     .call(xAxisGenerator)
-    .style("transform", `translateY(${dimensions.boundedHeight}px)`)
-    .attr("role", "presentation")
-    .attr("aria-hidden", true);
+    .style("transform", `translateY(${dimensions.boundedHeight}px)`);
 
   const xAxisLabel = xAxis
     .append("text")
@@ -147,8 +125,38 @@ async function drawBars() {
     .attr("fill", "black")
     .style("font-size", "1.4em")
     .text("Humidity")
-    .style("text-transform", "capitalize")
-    .attr("role", "presentation")
-    .attr("aria-hidden", true);
+    .style("text-transform", "capitalize");
+
+  // 7. Create interactions
+
+  binGroups
+    .select("rect")
+    .on("mouseenter", onMouseEnter)
+    .on("mouseleave", onMouseLeave);
+
+  const tooltip = d3.select("#tooltip");
+  function onMouseEnter(event, d) {
+    tooltip.select("#count").text(yAccessor(d));
+
+    const formatHumidity = d3.format(".2f");
+    tooltip
+      .select("#range")
+      .text([formatHumidity(d.x0), formatHumidity(d.x1)].join(" - "));
+
+    const x =
+      xScale(d.x0) + (xScale(d.x1) - xScale(d.x0)) / 2 + dimensions.margin.left;
+    const y = yScale(yAccessor(d)) + dimensions.margin.top;
+
+    tooltip.style(
+      "transform",
+      `translate(` + `calc( -50% + ${x}px),` + `calc(-100% + ${y}px)` + `)`
+    );
+
+    tooltip.style("opacity", 1);
+  }
+
+  function onMouseLeave() {
+    tooltip.style("opacity", 0);
+  }
 }
 drawBars();
