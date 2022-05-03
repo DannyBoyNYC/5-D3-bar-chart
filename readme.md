@@ -1481,15 +1481,15 @@ Styles:
   position: relative;
 }
 
-.bin rect {
+rect {
   fill: cornflowerblue;
 }
 
-.bin rect:hover {
+rect:hover {
   fill: purple;
 }
 
-.bin text {
+text {
   text-anchor: middle;
   fill: darkgrey;
   font-size: 12px;
@@ -1575,28 +1575,21 @@ HTML:
 
 We could use d3 event listeners to change the bar's color on hover, but there's an alternative: CSS hover states. To add CSS properties that only apply when an element is hovered over, add `:hover` after the selector name. It's good practice to place this selector immediately after the non-hover styles to keep all bar styles in one place.
 
-Add a new selector to the styles.css file:
+We've added a new selector to the styles.css file to make our bars change their fill to purple when we hover over them:
 
 ```css
-.bin rect:hover {
-}
-```
-
-Let's have our bars change their fill to purple when we hover over them:
-
-```css
-.bin rect:hover {
+rect:hover {
   fill: purple;
 }
 ```
 
-Now our bars should turn purple when we hover over them and back to blue when we move our mouse out.
+Our bars should turn purple when we hover over them and back to blue when we move our mouse out.
 
 Now we know how to implement hover states in two ways: CSS hover states and event listeners. Why would we use one over the other?
 
 > CSS hover states are good to use for more stylistic updates that don't require DOM changes. For example, changing colors or opacity.
 
-> JavaScript event listeners are what we need to turn to when we need a more complicated hover state. For example, if we want to update the text of a tooltip or move an element, we'll want to do that in JavaScript.
+> JavaScript event listeners are what turn to when we need a more complicated hover state. For example, if we want to update the text of a tooltip or move an element.
 
 Since we need to update our tooltip text and position when we hover over a bar, let's add our `mouseenter` and `mouseleave` event listeners at the bottom of our `.js` file. We can set ourselves up with named functions to keep our chained code clean and concise.
 
@@ -1614,7 +1607,7 @@ const onMouseLeave = (event, d) => {};
 Starting with our `onMouseEnter()` function, we'll start by grabbing our tooltip element. If you look in our `index.html` file, you can see that our template starts with a tooltip with two children: a div to display the range and a div to display the value. We'll follow the common convention of using ids as hooks for JavaScript and classes as hooks for CSS. There are two main reasons for this distinction:
 
 1. We can use classes in multiple places (if we wanted to style multiple elements at once) but we'll only use an id in one place. This ensures that we're selecting the correct element in our chart code
-2. We want to separate our chart manipulation code and our styling code — we should be able to move our chart hook without affecting the styles.
+1. We want to separate our chart manipulation code and our styling code — we should be able to move our chart hook without affecting the styles.
 
 If we open up our `styles.css`, we can see our basic tooltip styles, including using a pseudo-selector `.tooltip:before` to add an arrow pointing down (at the hovered bar). Also note that the tooltip is hidden (`opacity: 0`) and will transition any property changes (`transition: all 0.2s ease-out`). It also will not receive any mouse events (`pointer-events: none`) to prevent from stealing the mouse events we'll be implementing.
 
@@ -1664,7 +1657,10 @@ Now our tooltip updates when we hover over a bar to show that bar's count.
 We can update our range value to match the hovered bar. The bar is covering a range of humidity values, so let's make an array of the values and join them with a `-` (which can be easier to read than a template literal).
 
 ```js
-tooltip.select("#range").text([d.x0, d.x1].join(" - "));
+function onMouseEnter(event, d) {
+  tooltip.select("#count").text(yAccessor(d));
+  tooltip.select("#range").text([d.x0, d.x1].join(" - "));
+}
 ```
 
 Our tooltip now updates to display both the count and the range, but it might be a bit too precise.
@@ -1708,9 +1704,9 @@ An added benefit to our number formatting is that our range numbers are the same
 
 Next, we want to position our tooltip horizontally centered above a bar when we hover over it. To calculate our tooltip's x position, we'll need to take three things into account:
 
-1. the bar's x position in the chart (xScale(d.x0)),
-1. half of the bar's width ((xScale(d.x1) - xScale(d.x0)) / 2`), and
-1. the margin by which our bounds are shifted right (dimensions.margin.left).
+1. the bar's x position in the chart (`xScale(d.x0)`),
+1. half of the bar's width (`(xScale(d.x1) - xScale(d.x0)) / 2`), and
+1. the margin by which our bounds are shifted right (`dimensions.margin.left`).
 
 Remember that our tooltip is located at the top left of our `wrapper` - the outer container of our chart. But since our bars are within our bounds, they are shifted by the margins we specified.
 
@@ -1965,15 +1961,15 @@ Styles:
   position: relative;
 }
 
-.bin rect {
+rect {
   fill: cornflowerblue;
 }
 
-.bin rect:hover {
+rect:hover {
   fill: purple;
 }
 
-.bin text {
+text {
   text-anchor: middle;
   fill: darkgrey;
   font-size: 12px;
