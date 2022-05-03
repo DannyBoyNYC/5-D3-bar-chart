@@ -1557,7 +1557,7 @@ HTML:
 <html lang="en">
   <head>
     <link rel="stylesheet" href="./styles.css" />
-    <title>My Histogram</title>
+    <title>Histogram Bar Chart with Tooltip</title>
   </head>
   <body>
     <div id="wrapper" class="wrapper">
@@ -2037,7 +2037,7 @@ HTML:
 <html lang="en">
   <head>
     <link rel="stylesheet" href="./styles.css" />
-    <title>My Histogram</title>
+    <title>Histogram Bar Chart with Tooltip</title>
   </head>
   <body>
     <div id="wrapper" class="wrapper">
