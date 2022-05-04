@@ -20,6 +20,10 @@
 
 We'll create a [bar chart](https://dataviz-exercises.netlify.app/bar-chart/index.html) using a histogram. We'll also generalize our histogram function and loop through eight metrics in our dataset - creating many histograms to compare.
 
+## Homework
+
+Step through the process of creating a single chart with a11y using one of the metrics in the dataset (can be one of the metrics that were used to create the mutliple chart version). Along the way I would like you to log values in order to become more familiar with the processes we've been using to date. Add interactivity (tooltip) and set a formatter for the mean value. Also don't forget the CSS for the mean label.
+
 ## Deciding the chart type
 
 Another question that we can ask our dataset is: what does the distribution of a metric look like?
