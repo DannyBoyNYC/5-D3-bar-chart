@@ -35,9 +35,9 @@ For example:
 - Does it vary consistently, with no standard value?
 - Or are there really humid days and really dry days, with none in-between?
 
-Looking at the [scatter plot](https://dataviz-exercises.netlify.app/dew-point-interactive/index.html) we made, we can see the daily humidity values from the dots' vertical placement but it's hard to answer our questions - do most of our dots fall close the middle of the chart? We're not entirely sure.
+Looking at the [scatter plot](https://dataviz-exercises.netlify.app/dew-point-interactive/index.html) we made, we can see the daily humidity values from the dots' vertical placement but it's hard to answer our questions - do most of our dots fall close the middle of the chart? It's not entirely clear from the presentation.
 
-Instead, let's make a histogram that plots a single metric - humidity.
+So let's make a histogram that plots a single metric - humidity.
 
 ## Histogram
 
@@ -51,7 +51,7 @@ For example, we could make bins for dew point temperatures that span 10 degrees 
 
 A dew point of 15 degrees would be counted in the second bin: `10-20`.
 
-The number and size of bins is up to the implementor - you could have a histogram with only 3 bins or one with 100 bins. There are standards that can be followed - check out [d3's built-in formulas](https://github.com/d3/d3-array#bin-thresholds) and the [examples for bins](https://github.com/d3/d3-array#bins) - but we can generally decide the number based on what suits the data and what's easy to read.
+The number and size of bins is a matter of implemention - you could have a histogram with only 3 bins or one with 100 bins. There are standards that can be followed - check out [d3's built-in formulas](https://github.com/d3/d3-array#bin-thresholds) and the [examples for bins](https://github.com/d3/d3-array#bins) - but we can generally decide the number based on what suits the data and what's easy to read.
 
 Our goal to make a histogram of humidity values will show us the distribution of humidity values and help answer the questions:
 
@@ -360,7 +360,7 @@ drawBars();
 
 ## Draw data
 
-We draw our bars in groups so we can position them (as well as labels).
+We draw our bars in groups so we can position them (as well as the labels).
 
 Our plan is to create one bar for each bin, with a label on top of each bar.
 
@@ -540,7 +540,7 @@ Draw a label over each bar, showing the number of points within that bin.
 
 We can keep our chart clean by only adding labels to bins with any relevant days — having 0s in empty spaces is visual clutter. We can identify which bins have no data by their lack of a bar, no need to call it out with a label.
 
-d3 selections have a `.filter()` method that acts the same way the native Array method does. `.filter()` accepts one parameter: a function that accepts one data point and returns a value. Any items in our dataset that return a falsey value will be removed.
+d3 selections have a `.filter()` method that acts the same way the native Array filter method does. `.filter()` accepts one parameter: a function that accepts one data point and returns a value. Any items in our dataset that return a falsey value will be removed.
 
 > By "falsey", we're referring to any value that evaluates to false. This includes values other than false, such as `0, null, undefined, "", and NaN`. Bear in mind that empty arrays `[]` and object `{}` evaluate to truthy. If you're curious, [read more here](https://developer.mozilla.org/en-US/docs/Glossary/Falsy).
 
@@ -556,7 +556,7 @@ Since these labels are just text, we'll want to use the SVG `<text>` element we'
 const barText = binGroups.filter(yAccessor).append("text");
 ```
 
-Remember,` <text>` elements are positioned with x and y attributes. The label will be centered horizontally above the bar — we can find the center of the bar by adding half of the bar's width (the right side minus the left side) to the left side of the bar.
+Remember,` <text>` elements are positioned with x and y attributes. The label will be centered horizontally above the bar and we can find the center of the bar by adding half of the bar's width (the right side minus the left side) to the left side of the bar.
 
 ```js
 const barText = binGroups
@@ -711,7 +711,7 @@ drawBars();
 
 ## Draw peripherals
 
-Draw a line depicting the mean of our distribution, as well as our axes.
+1. Draw a line depicting the mean of our distribution, as well as our axes.
 
 When looking at the shape of a distribution, it can be helpful to know where the mean is.
 
@@ -1028,7 +1028,7 @@ And in our mean:
 const mean = d3.mean(dataset, metricAccessor);
 ```
 
-At the bottom of our `drawBars()` function, let's run through some of the available metrics and pass each of them to our new generalized function.
+At the bottom of / beneath our `drawBars()` function, let's run through some of the available metrics and pass each of them to our new generalized function.
 
 ```js
 const metrics = [
