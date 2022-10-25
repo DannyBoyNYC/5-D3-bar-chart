@@ -20,10 +20,6 @@
 
 We'll create a [bar chart](https://dataviz-exercises.netlify.app/bar-chart/index.html) using a histogram. We'll also generalize our histogram function and loop through eight metrics in our dataset - creating many histograms to compare.
 
-## Homework
-
-Step through the process of creating a single chart with a11y using one of the metrics in the dataset (can be one of the metrics that were used to create the mutliple chart version). Along the way I would like you to log values in order to become more familiar with the processes we've been using to date. Add interactivity (tooltip) and set a formatter for the mean value. Also don't forget the CSS for the mean label.
-
 ## Deciding the chart type
 
 Another question that we can ask our dataset is: what does the distribution of a metric look like?
@@ -783,7 +779,7 @@ const meanLabel = bounds
   .append("text")
   .attr("x", xScale(mean))
   .attr("y", -20)
-  .text(`mean ${mean}`)
+  .text(`mean ${mean.toPrecision(3)}`)
   .attr("fill", "maroon")
   .style("font-size", "12px")
   .style("text-anchor", "middle")
@@ -930,7 +926,7 @@ async function drawBars() {
     .append("text")
     .attr("x", xScale(mean))
     .attr("y", -20)
-    .text("mean")
+    .text(`mean ${mean.toPrecision(3)}`)
     .attr("fill", "maroon")
     .style("font-size", "12px")
     .style("text-anchor", "middle")
@@ -982,8 +978,9 @@ We'll create a new function called `drawHistogram()` that contains all of our co
 
 ```js
 const drawHistogram = () => {
-    const wrapper = d3.select("#wrapper")
-    // ...  the rest of our chart code
+  const wrapper = d3.select("#wrapper");
+  // ...  the rest of our chart code
+};
 ```
 
 What parameters does our function need? The only difference between these charts is the metric we're plotting, so let's add that as an argument.
